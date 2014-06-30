@@ -494,9 +494,11 @@ class ForceRegenerateThumbnails {
 
             // Image don't exists
             if (!file_exists($image_fullpath) || realpath($image_fullpath) === false) {
-            
+                if ($this->attemptFileDownload($image_fullpath, $image->ID) !== false) {
+                    // File should exist now
+                }
                 // Try get image path from url
-                if ((strrpos($image->guid, $upload_dir['baseurl']) !== false)) {
+                elseif ((strrpos($image->guid, $upload_dir['baseurl']) !== false)) {
                     $image_fullpath = realpath($upload_dir['basedir'] . DIRECTORY_SEPARATOR . substr($image->guid, strlen($upload_dir['baseurl']), strlen($image->guid)));
                     $debug_4 = $image_fullpath;
                     if (realpath($image_fullpath) === false) {
@@ -658,6 +660,24 @@ class ForceRegenerateThumbnails {
 
 		exit;
 	}
+
+    function attemptFileDownload($filepath, $image_id) {
+        $url = wp_get_attachment_url($image_id);
+        if (substr(get_headers($url)[0], 9, 3) !== '200') {
+            return false;
+        }
+        if (file_exists(dirname($filepath)) === false) {
+            if (mkdir(dirname($filepath), 0777, true) === false) {
+                return false;
+            }
+        }
+
+        if (file_put_contents($filepath, fopen($url, 'r')) === false) {
+            return false;
+        }
+
+        return true;
+    }
 
 
 	/**
